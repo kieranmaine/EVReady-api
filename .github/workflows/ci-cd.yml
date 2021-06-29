@@ -1,0 +1,21 @@
+name: ci-cd
+on:
+  push:
+    branches:
+      - main
+jobs:
+  migrate-latest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+      - name: Google Cloud SQL Proxy
+        uses: mattes/gce-cloudsql-proxy-action@v1.0.1
+        with:
+          creds: ${{ secrets.CLOUD_SQL_CREDENTIALS }}
+          instance: ev-ready-18021999:europe-west2:evready
+      - name: Test DB Migrations
+        run: |
+          echo ${{ job.services.postgres.ports[5432] }}
+          npm install          
+          npm run knex:migrate:latest -- --connection "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost/evready_dev"

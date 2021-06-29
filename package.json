@@ -1,0 +1,32 @@
+{
+  "name": "evready-api",
+  "version": "0.0.1",
+  "description": "API for the EVReady smartphone app",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "envtest": "echo %USERPROFILE%",
+    "knex:migrate:latest": "knex migrate:latest --client postgresql --migrations-directory migrations",
+    "knex:migrate:rollback": "knex migrate:rollback --client postgresql --migrations-directory migrations"
+  },
+  "dependencies": {
+    "knex": "^0.95.6",
+    "pg": "^8.6.0",
+    "sqlite3": "^5.0.2",
+    "ts-node": "^10.0.0",
+    "typescript": "^4.3.4"
+  },
+  "devDependencies": {
+    "prettier": "^2.3.2"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kieranmaine/EVReady-api.git"
+  },
+  "author": "Kieran Iles",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/kieranmaine/EVReady-api/issues"
+  },
+  "homepage": "https://github.com/kieranmaine/EVReady-api#readme"
+}
