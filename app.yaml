@@ -1,0 +1,6 @@
+runtime: nodejs14
+env_variables:
+  DB_USER: postgres
+  DB_NAME: evready_dev
+  DB_PORT: 5432
+  CLOUD_SQL_CONNECTION_NAME: ev-ready-18021999:europe-west2:evready

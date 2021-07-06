@@ -4,7 +4,42 @@ on:
     branches:
       - main
 jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+          cache: 'npm'
+      - run: npm install
+      - run: npm run lint
+      - run: npm run build
+      - name: Setup DB
+        run: |
+          echo ${{ job.services.postgres.ports[5432] }}
+          npm run knex:migrate:latest -- --connection "postgresql://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}"
+      - name: Run integration tests
+        run: |
+          export PORT=8080 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=postgres DB_HOST=127.0.0.1 DB_PORT=5432
+          npm run test
   migrate-latest:
+    needs: integration-tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -12,10 +47,20 @@ jobs:
       - name: Google Cloud SQL Proxy
         uses: mattes/gce-cloudsql-proxy-action@v1.0.1
         with:
-          creds: ${{ secrets.CLOUD_SQL_CREDENTIALS }}
+          creds: ${{ secrets.GCP_SA_KEY }}
           instance: ev-ready-18021999:europe-west2:evready
-      - name: Test DB Migrations
+      - name: DB Migrate Latest
         run: |
           echo ${{ job.services.postgres.ports[5432] }}
-          npm install          
-          npm run knex:migrate:latest -- --connection "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost/evready_dev"
+          npm install
+          npm run knex:migrate:latest -- --connection "postgresql://postgres:${{ secrets.POSTGRES_PASSWORD }}@localhost/evready_dev"  
+  deploy-dev:
+    needs: migrate-latest
+    runs-on: ubuntu-latest
+    depends: 
+    steps:
+      - uses: actions/checkout@v2
+      - uses: google-github-actions/deploy-appengine@main
+        with:
+          credentials: ${{ secrets.GCP_SA_KEY }}
+            
