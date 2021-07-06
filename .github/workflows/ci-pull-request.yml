@@ -24,9 +24,46 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+          cache: 'npm'
       - name: Test DB Migrations
         run: |
           echo ${{ job.services.postgres.ports[5432] }}
           npm install
           npm run knex:migrate:latest -- --connection "postgresql://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}"
           npm run knex:migrate:rollback -- --connection "postgresql://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}"
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:11
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        # needed because the postgres container does not provide a healthcheck
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-node@v1
+        with:
+          node-version: '14'
+          cache: 'npm'
+      - run: npm install
+      - run: npm run lint
+      - run: npm run build
+      - name: Setup DB
+        run: |
+          echo ${{ job.services.postgres.ports[5432] }}          
+          npm run knex:migrate:latest -- --connection "postgresql://postgres:postgres@localhost:${{ job.services.postgres.ports[5432] }}"
+      - name: Run integration tests          
+        run: |
+          export PORT=8080 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=postgres DB_HOST=127.0.0.1 DB_PORT=5432
+          npm run test
