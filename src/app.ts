@@ -3,35 +3,42 @@ import * as dotenv from "dotenv";
 import { Journey, validate } from "./models/journey";
 import { json } from "body-parser";
 import { getEVs, insertJourney } from "./repository";
+import { userAuthorization } from "./middleware/authorization";
+import { RequestCustom } from "./types";
 
 dotenv.config({ path: __dirname + "/../.env" });
 
 const app = express();
 
 app.use(json());
-
 app.get("/", (_, res) => {
   res.send("OK");
 });
 
-app.post("/journeys", async (req, res) => {
+const secureRouter = express.Router();
+secureRouter.use(userAuthorization);
+
+secureRouter.post("/journeys", async (req, res) => {
   const { error } = validate(req.body);
 
   if (error) {
     return res.status(400).json(error);
   }
 
-  try {
-    const [journeyId] = await insertJourney(req.body as Journey);
+  const journey = {
+    ...req.body,
+    userId: (req as RequestCustom).currentUser.id,
+  } as Journey;
 
-    return res.status(201).send({ id: journeyId });
-  } catch (err) {
-    return res.status(500).send();
-  }
+  const [journeyId] = await insertJourney(journey);
+
+  res.status(201).send({ id: journeyId });
 });
 
-app.get("/evs", async (_, res) => {
+secureRouter.get("/evs", async (_, res) => {
   res.json(await getEVs());
 });
+
+app.use("/", secureRouter);
 
 export default app;

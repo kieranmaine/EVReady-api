@@ -12,7 +12,9 @@
     "gcp-build": "npm run build",
     "start": "node dist/server.js",
     "knex:migrate:latest": "knex migrate:latest --client postgresql --migrations-directory migrations",
-    "knex:migrate:rollback": "knex migrate:rollback --client postgresql --migrations-directory migrations"
+    "knex:migrate:latest:local": "npm run knex:migrate:latest -- --connection \"postgresql://postgres:postgres@localhost:5432\"",
+    "knex:migrate:rollback": "knex migrate:rollback --client postgresql --migrations-directory migrations",
+    "knex:migrate:rollback:local": "npm run knex:migrate:rollback -- --connection \"postgresql://postgres:postgres@localhost:5432\""
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^3.7.3",

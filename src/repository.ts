@@ -41,6 +41,10 @@ export async function insertJourney(journey: Journey): Promise<number[]> {
   return (await db())("journeys").insert(journeyToInsert).returning("id");
 }
 
+export async function getUser(id: string): Promise<User> {
+  return (await db())("users").where({ id }).first<User>();
+}
+
 export async function getEVs(): Promise<any[]> {
   return (await db())("evs");
 }
