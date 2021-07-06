@@ -3,6 +3,7 @@
 import knex, { Knex } from "knex";
 import { getSecret, SecretKeys } from "./secrets";
 import { Journey } from "./models/journey";
+import { User } from "./models/user";
 
 const createUnixSocketPool = async () => {
   const dbHost = process.env.DB_HOST;
