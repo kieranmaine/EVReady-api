@@ -11,6 +11,7 @@ dotenv.config({ path: __dirname + "/../.env" });
 const app = express();
 
 app.use(json());
+
 app.get("/", (_, res) => {
   res.send("OK");
 });

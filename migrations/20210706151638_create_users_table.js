@@ -13,6 +13,8 @@ exports.up = async function (knex) {
 };
 
 exports.down = async function (knex) {
+  await knex.schema.table("journeys", function (table) {
+    table.dropColumn("userId");
+  });
   await knex.schema.dropTable("users");
-  await knex.schema.table("journeys").dropColumn("userId");
 };
