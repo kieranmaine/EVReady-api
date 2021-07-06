@@ -3,6 +3,7 @@
 import knex, { Knex } from "knex";
 import { getSecret, SecretKeys } from "./secrets";
 import { Journey } from "./models/journey";
+import { User } from "./models/user";
 
 const createUnixSocketPool = async () => {
   const dbHost = process.env.DB_HOST;
@@ -39,6 +40,10 @@ export async function insertJourney(journey: Journey): Promise<number[]> {
   } as Journey;
 
   return (await db())("journeys").insert(journeyToInsert).returning("id");
+}
+
+export async function getUser(id: string): Promise<User> {
+  return (await db())("users").where({ id }).first<User>();
 }
 
 export async function getEVs(): Promise<any[]> {

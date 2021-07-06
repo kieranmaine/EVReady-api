@@ -4,8 +4,16 @@ import app from "../../src/app";
 import { Journey } from "../../src/models/journey";
 import { db } from "../../src/repository";
 
-test("GET /", async () => {
-  await supertest(app).get("/").expect(200, "OK");
+const userId = "e64b7281-18ab-4d27-b788-b38300e950e1";
+
+test("POST /journeys - Unauthorised", async () => {
+  // UUID is invalid and doesn't exist
+  const res = await supertest(app)
+    .post("/journeys")
+    .set("Authorization", "Basic 56ffcc8f-d761-4e5b-be00-10ec0390dde2")
+    .send({});
+
+  expect(res.status).toEqual(401);
 });
 
 test("POST /journeys - Valid request", async () => {
@@ -17,7 +25,10 @@ test("POST /journeys - Valid request", async () => {
     finishedAtHome: faker.datatype.boolean(),
   };
 
-  const res = await supertest(app).post("/journeys").send(expectedJourney);
+  const res = await supertest(app)
+    .post("/journeys")
+    .set("Authorization", `Basic ${userId}`)
+    .send(expectedJourney);
 
   expect(res.status).toEqual(201);
 
@@ -29,13 +40,18 @@ test("POST /journeys - Valid request", async () => {
 
   const journeyStartDate = new Date(journey.startDate).getTime();
 
-  expect(journey).toEqual(expect.objectContaining(expectedJourney));
+  expect(journey).toEqual(
+    expect.objectContaining({ ...expectedJourney, userId })
+  );
   expect(journeyStartDate).toBeGreaterThan(startTime.getTime());
   expect(journeyStartDate).toBeLessThan(Date.now());
 });
 
 test("POST /journeys - Missing required fields", async () => {
-  const res = await supertest(app).post("/journeys").send({});
+  const res = await supertest(app)
+    .post("/journeys")
+    .set("Authorization", `Basic ${userId}`)
+    .send({});
 
   expect(res.status).toEqual(400);
 
@@ -49,11 +65,14 @@ test("POST /journeys - Missing required fields", async () => {
 });
 
 test("POST /journeys - Invalid fields", async () => {
-  const res = await supertest(app).post("/journeys").send({
-    durationSeconds: "Wrong type",
-    distanceMeters: "Wrong type",
-    finishedAtHome: "Wrong type",
-  });
+  const res = await supertest(app)
+    .post("/journeys")
+    .set("Authorization", `Basic ${userId}`)
+    .send({
+      durationSeconds: "Wrong type",
+      distanceMeters: "Wrong type",
+      finishedAtHome: "Wrong type",
+    });
 
   expect(res.status).toEqual(400);
 

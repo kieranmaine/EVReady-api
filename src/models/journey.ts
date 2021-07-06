@@ -2,6 +2,7 @@ import Joi, { ValidationResult } from "joi";
 
 export interface Journey {
   id?: string;
+  userId: string;
   startDate: Date;
   durationSeconds: number;
   distanceMeters: number;
