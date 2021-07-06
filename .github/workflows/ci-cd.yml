@@ -39,7 +39,7 @@ jobs:
           export PORT=8080 DB_USER=postgres DB_PASSWORD=postgres DB_NAME=postgres DB_HOST=127.0.0.1 DB_PORT=5432
           npm run test
   migrate-latest:
-    needs: integration-tests
+    needs: build-and-test
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
