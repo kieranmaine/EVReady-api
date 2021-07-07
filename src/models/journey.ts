@@ -11,8 +11,8 @@ export interface Journey {
 
 export function validate(obj: Record<string, unknown>): ValidationResult {
   return Joi.object({
-    durationSeconds: Joi.number().required(),
-    distanceMeters: Joi.number().required(),
+    durationSeconds: Joi.number().integer().required(),
+    distanceMeters: Joi.number().integer().required(),
     finishedAtHome: Joi.boolean().required(),
   })
     .required()
