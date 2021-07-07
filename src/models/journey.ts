@@ -3,10 +3,16 @@ import Joi, { ValidationResult } from "joi";
 export interface Journey {
   id?: string;
   userId: string;
-  startDate: Date;
+  startDate?: Date;
   durationSeconds: number;
   distanceMeters: number;
   finishedAtHome: boolean;
+}
+
+export interface WeeklyJourneysSummary {
+  weekStartDate: Date;
+  journeysCount: number;
+  totalMiles: number;
 }
 
 export function validate(obj: Record<string, unknown>): ValidationResult {

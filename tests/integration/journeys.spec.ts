@@ -2,9 +2,14 @@ import supertest from "supertest";
 import faker from "faker";
 import app from "../../src/app";
 import { Journey } from "../../src/models/journey";
-import { db } from "../../src/repository";
+import { db, insertJourney } from "../../src/repository";
+import { userId } from "./setup";
+import { databaseCleanup } from "./utils";
+import { createJourney } from "./testData";
 
-const userId = "e64b7281-18ab-4d27-b788-b38300e950e1";
+beforeEach(async () => {
+  await databaseCleanup();
+});
 
 test("POST /journeys - Unauthorised", async () => {
   // UUID is invalid and doesn't exist
@@ -38,11 +43,11 @@ test("POST /journeys - Valid request", async () => {
     .where("id", id)
     .first()) as Journey;
 
-  const journeyStartDate = new Date(journey.startDate).getTime();
-
   expect(journey).toEqual(
     expect.objectContaining({ ...expectedJourney, userId })
   );
+
+  const journeyStartDate = new Date(journey.startDate ?? 0).getTime();
   expect(journeyStartDate).toBeGreaterThan(startTime.getTime());
   expect(journeyStartDate).toBeLessThan(Date.now());
 });
@@ -87,4 +92,90 @@ test("POST /journeys - Invalid fields", async () => {
       }),
     ])
   );
+});
+
+test("GET /journeys - Unauthorised", async () => {
+  // UUID is invalid and doesn't exist
+  const res = await supertest(app)
+    .get("/journeys")
+    .set("X-API-Key", "56ffcc8f-d761-4e5b-be00-10ec0390dde2")
+    .send();
+
+  expect(res.status).toEqual(401);
+});
+
+test("GET /journeys - Valid request", async () => {
+  const journey1 = createJourney();
+  await insertJourney(journey1);
+
+  const otherUserId = faker.datatype.uuid();
+  await (await db())("users").insert({ id: otherUserId });
+  await insertJourney(createJourney({ userId: otherUserId }));
+
+  const journey2 = createJourney();
+  await insertJourney(journey2);
+
+  const res = await supertest(app)
+    .get("/journeys")
+    .set("X-API-Key", userId)
+    .send();
+
+  expect(res.status).toEqual(200);
+
+  const results = res.body as Journey[];
+
+  expect(results).toHaveLength(2);
+  expect(results[0]).toEqual(expect.objectContaining(journey2));
+  expect(results[1]).toEqual(expect.objectContaining(journey1));
+});
+
+test("GET /journeys/weekly - Unauthorised", async () => {
+  // UUID is invalid and doesn't exist
+  const res = await supertest(app)
+    .get("/journeys/weekly")
+    .set("X-API-Key", "56ffcc8f-d761-4e5b-be00-10ec0390dde2")
+    .send();
+
+  expect(res.status).toEqual(401);
+});
+
+test("GET /journeys/weekly - Valid request", async () => {
+  await insertJourney(
+    createJourney({
+      distanceMeters: 1609,
+      startDate: new Date(2021, 6, 7, 13, 0),
+    })
+  );
+  await insertJourney(
+    createJourney({
+      distanceMeters: 16090,
+      startDate: new Date(2021, 6, 7, 13, 0),
+    })
+  );
+  await insertJourney(
+    createJourney({
+      distanceMeters: 3218,
+      startDate: new Date(2021, 6, 1, 13, 0),
+    })
+  );
+
+  const res = await supertest(app)
+    .get("/journeys/weekly")
+    .set("X-API-Key", userId)
+    .send();
+
+  expect(res.status).toEqual(200);
+
+  expect(res.body).toEqual([
+    {
+      weekStartDate: new Date(2021, 6, 5, 1, 0).toISOString(),
+      journeysCount: 2,
+      totalMiles: 11,
+    },
+    {
+      weekStartDate: new Date(2021, 5, 28, 1, 0).toISOString(),
+      journeysCount: 1,
+      totalMiles: 2,
+    },
+  ]);
 });

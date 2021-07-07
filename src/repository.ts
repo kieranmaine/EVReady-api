@@ -1,8 +1,7 @@
 /* eslint-disable  @typescript-eslint/no-explicit-any */
-
 import knex, { Knex } from "knex";
 import { getSecret, SecretKeys } from "./secrets";
-import { Journey } from "./models/journey";
+import { Journey, WeeklyJourneysSummary } from "./models/journey";
 import { User } from "./models/user";
 
 const createUnixSocketPool = async () => {
@@ -34,13 +33,49 @@ export const db = async (): Promise<Knex<any, unknown[]>> => {
 };
 
 export async function insertJourney(journey: Journey): Promise<number[]> {
-  const journeyToInsert = {
-    ...journey,
-    startDate: new Date(),
-  } as Journey;
+  const journeyToInsert = { ...journey };
+
+  if (!journeyToInsert.startDate) {
+    journeyToInsert.startDate = new Date();
+  }
 
   return (await db())("journeys").insert(journeyToInsert).returning("id");
 }
+
+export async function getJourneys(userId: string): Promise<Journey[]> {
+  return (await db())("journeys")
+    .where({ userId })
+    .orderBy("startDate", "desc");
+}
+
+export async function getWeeklyJourneySummary(
+  userId: string
+): Promise<WeeklyJourneysSummary[]> {
+  const client = await db();
+  const results = await client.raw(
+    `
+    SELECT 
+      date_trunc('week', "startDate") AS "weekStartDate", 
+      COUNT(*) as "journeysCount",
+      SUM("distanceMeters") / 1609 AS "totalMiles"
+    FROM journeys
+    GROUP BY 1
+    ORDER BY 1 DESC
+    `,
+    { userId }
+  );
+
+  return results.rows.map(
+    (row: any) =>
+      ({
+        weekStartDate: row.weekStartDate,
+        journeysCount: parseInt(row.journeysCount),
+        totalMiles: parseInt(row.totalMiles),
+      } as WeeklyJourneysSummary)
+  );
+}
+
+getJourneys;
 
 export async function getUser(id: string): Promise<User> {
   return (await db())("users").where({ id }).first<User>();
