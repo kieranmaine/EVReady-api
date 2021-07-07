@@ -19,21 +19,25 @@ app.get("/", (_, res) => {
 const secureRouter = express.Router();
 secureRouter.use(userAuthorization);
 
-secureRouter.post("/journeys", async (req, res) => {
+secureRouter.post("/journeys", async (req, res, next) => {
   const { error } = validate(req.body);
 
   if (error) {
     return res.status(400).json(error);
   }
 
-  const journey = {
-    ...req.body,
-    userId: (req as RequestCustom).currentUser.id,
-  } as Journey;
+  try {
+    const journey = {
+      ...req.body,
+      userId: (req as RequestCustom).currentUser.id,
+    } as Journey;
 
-  const [journeyId] = await insertJourney(journey);
+    const [journeyId] = await insertJourney(journey);
 
-  res.status(201).send({ id: journeyId });
+    res.status(201).send({ id: journeyId });
+  } catch (error) {
+    next(error);
+  }
 });
 
 secureRouter.get("/evs", async (_, res) => {

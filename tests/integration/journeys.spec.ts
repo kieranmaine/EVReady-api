@@ -69,8 +69,8 @@ test("POST /journeys - Invalid fields", async () => {
     .post("/journeys")
     .set("X-API-Key", userId)
     .send({
-      durationSeconds: "Wrong type",
-      distanceMeters: "Wrong type",
+      durationSeconds: 123.456,
+      distanceMeters: false,
       finishedAtHome: "Wrong type",
     });
 
@@ -79,7 +79,7 @@ test("POST /journeys - Invalid fields", async () => {
   expect(res.body.details).toEqual(
     expect.arrayContaining([
       expect.objectContaining({
-        message: '"durationSeconds" must be a number',
+        message: '"durationSeconds" must be an integer',
       }),
       expect.objectContaining({ message: '"distanceMeters" must be a number' }),
       expect.objectContaining({
