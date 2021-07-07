@@ -7,15 +7,10 @@ export const userAuthorization = async (
   res: Response,
   next: NextFunction
 ): Promise<void> => {
-  if (req.headers.authorization == null) {
-    res.status(400).send("Authorization header must be included");
-    return;
-  }
+  const userId = req.headers["x-api-key"] as string;
 
-  const [type, userId] = (req.headers.authorization as string).split(" ");
-
-  if (type != "Basic") {
-    res.status(400).send("Authorization header must be Basic");
+  if (!userId) {
+    res.status(401).send("X-API-Key header required");
     return;
   }
 

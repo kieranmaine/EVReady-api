@@ -10,7 +10,7 @@ test("POST /journeys - Unauthorised", async () => {
   // UUID is invalid and doesn't exist
   const res = await supertest(app)
     .post("/journeys")
-    .set("Authorization", "Basic 56ffcc8f-d761-4e5b-be00-10ec0390dde2")
+    .set("X-API-Key", "56ffcc8f-d761-4e5b-be00-10ec0390dde2")
     .send({});
 
   expect(res.status).toEqual(401);
@@ -27,7 +27,7 @@ test("POST /journeys - Valid request", async () => {
 
   const res = await supertest(app)
     .post("/journeys")
-    .set("Authorization", `Basic ${userId}`)
+    .set("X-API-Key", userId)
     .send(expectedJourney);
 
   expect(res.status).toEqual(201);
@@ -50,7 +50,7 @@ test("POST /journeys - Valid request", async () => {
 test("POST /journeys - Missing required fields", async () => {
   const res = await supertest(app)
     .post("/journeys")
-    .set("Authorization", `Basic ${userId}`)
+    .set("X-API-Key", userId)
     .send({});
 
   expect(res.status).toEqual(400);
@@ -67,7 +67,7 @@ test("POST /journeys - Missing required fields", async () => {
 test("POST /journeys - Invalid fields", async () => {
   const res = await supertest(app)
     .post("/journeys")
-    .set("Authorization", `Basic ${userId}`)
+    .set("X-API-Key", userId)
     .send({
       durationSeconds: "Wrong type",
       distanceMeters: "Wrong type",
