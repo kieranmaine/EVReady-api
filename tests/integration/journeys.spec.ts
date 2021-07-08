@@ -5,7 +5,7 @@ import { Journey } from "../../src/models/journey";
 import { db, insertJourney } from "../../src/repository";
 import { userId } from "./setup";
 import { databaseCleanup } from "./utils";
-import { createJourney } from "./testData";
+import { createJourney, insertAnotherUser } from "./testData";
 
 beforeEach(async () => {
   await databaseCleanup();
@@ -108,8 +108,7 @@ test("GET /journeys - Valid request", async () => {
   const journey1 = createJourney();
   await insertJourney(journey1);
 
-  const otherUserId = faker.datatype.uuid();
-  await (await db())("users").insert({ id: otherUserId });
+  const otherUserId = await insertAnotherUser();
   await insertJourney(createJourney({ userId: otherUserId }));
 
   const journey2 = createJourney();
@@ -139,7 +138,7 @@ test("GET /journeys/weekly - Unauthorised", async () => {
   expect(res.status).toEqual(401);
 });
 
-test.only("GET /journeys/weekly - Valid request", async () => {
+test("GET /journeys/weekly - Valid request", async () => {
   await insertJourney(
     createJourney({
       distanceMeters: 1609,
