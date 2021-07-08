@@ -1,15 +1,6 @@
 import { db } from "../../src/repository";
 
-beforeAll(async () => {
-  // Clean up database before each test
-  await (
-    await db()
-  ).raw(`  
-    DELETE FROM journeys;
-    ALTER SEQUENCE journeys_id_seq RESTART;
-    UPDATE journeys SET id = DEFAULT;
-  `);
-});
+export const userId = "e64b7281-18ab-4d27-b788-b38300e950e1";
 
 afterAll(async () => {
   await (await db()).destroy();
