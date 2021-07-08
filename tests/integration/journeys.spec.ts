@@ -139,7 +139,7 @@ test("GET /journeys/weekly - Unauthorised", async () => {
   expect(res.status).toEqual(401);
 });
 
-test("GET /journeys/weekly - Valid request", async () => {
+test.only("GET /journeys/weekly - Valid request", async () => {
   await insertJourney(
     createJourney({
       distanceMeters: 1609,
@@ -149,13 +149,13 @@ test("GET /journeys/weekly - Valid request", async () => {
   await insertJourney(
     createJourney({
       distanceMeters: 16090,
-      startDate: new Date(2021, 6, 7, 13, 0),
+      startDate: new Date(Date.UTC(2021, 6, 7, 0, 0)),
     })
   );
   await insertJourney(
     createJourney({
       distanceMeters: 3218,
-      startDate: new Date(2021, 6, 1, 13, 0),
+      startDate: new Date(Date.UTC(2021, 6, 1, 0, 0)),
     })
   );
 
@@ -168,12 +168,12 @@ test("GET /journeys/weekly - Valid request", async () => {
 
   expect(res.body).toEqual([
     {
-      weekStartDate: new Date(2021, 6, 5, 1, 0).toISOString(),
+      weekStartDate: new Date(Date.UTC(2021, 6, 5, 0, 0)).toISOString(),
       journeysCount: 2,
       totalMiles: 11,
     },
     {
-      weekStartDate: new Date(2021, 5, 28, 1, 0).toISOString(),
+      weekStartDate: new Date(Date.UTC(2021, 5, 28, 0, 0)).toISOString(),
       journeysCount: 1,
       totalMiles: 2,
     },
