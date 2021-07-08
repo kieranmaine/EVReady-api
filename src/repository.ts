@@ -3,6 +3,7 @@ import knex, { Knex } from "knex";
 import { getSecret, SecretKeys } from "./secrets";
 import { Journey, WeeklyJourneysSummary } from "./models/journey";
 import { User } from "./models/user";
+import { ElectricVehicle } from "./models/electricVehicle";
 
 const createUnixSocketPool = async () => {
   const dbHost = process.env.DB_HOST;
@@ -82,5 +83,22 @@ export async function getUser(id: string): Promise<User> {
 }
 
 export async function getEVs(): Promise<any[]> {
-  return (await db())("evs");
+  const client = await db();
+  const results = await client.raw(
+    `
+    SELECT make, model, range, price, efficiency, 
+      ROUND((CAST(COUNT(J."totalDistance") AS FLOAT) / (SELECT COUNT(DISTINCT date_trunc('day', "startDate")) as totalJourneyDays 
+      FROM journeys)) * 100) AS "singleChargeDaysPercent"	
+    FROM evs E
+    LEFT JOIN (
+      select date_trunc('day', "startDate"), SUM("distanceMeters") / 1609 as "totalDistance"
+      from journeys
+      group by date_trunc('day', "startDate")
+    ) J ON E.range > J."totalDistance"
+    GROUP BY make, model, range, price, efficiency
+    ORDER BY COUNT(J."totalDistance") DESC, price ASC
+    `
+  );
+
+  return results.rows as ElectricVehicle[];
 }
