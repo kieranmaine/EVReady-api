@@ -88,7 +88,7 @@ export async function getEVs(): Promise<any[]> {
     `
     SELECT make, model, range, price, efficiency, 
       ROUND((CAST(COUNT(J."totalDistance") AS FLOAT) / (SELECT COUNT(DISTINCT date_trunc('day', "startDate")) as totalJourneyDays 
-      FROM journeys)) * 100) AS "singleChargeDaysPercent"	
+      FROM journeys)) * 100) AS "singleChargeDaysPercentage"
     FROM evs E
     LEFT JOIN (
       select date_trunc('day', "startDate"), SUM("distanceMeters") / 1609 as "totalDistance"

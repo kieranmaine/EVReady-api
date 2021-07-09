@@ -5,6 +5,7 @@ import { db, insertJourney } from "../../src/repository";
 import { userId } from "./setup";
 import { databaseCleanup } from "./utils";
 import { createJourney, evs, insertAnotherUser } from "./testData";
+import { ElectricVehicle } from "../../src/models/electricVehicle";
 
 beforeEach(async () => {
   await databaseCleanup();
@@ -55,14 +56,14 @@ test("GET /evs - Authorised", async () => {
 
   // Results are sorted by singleCharge days then price
   expect(res.body).toEqual([
-    { ...evs.tesla, singleChargeDaysPercent: 100 },
-    { ...evs.renault, singleChargeDaysPercent: 75 },
-    { ...evs.porsche, singleChargeDaysPercent: 75 },
-    { ...evs.vw_id3, singleChargeDaysPercent: 50 },
-    { ...evs.vw_egolf, singleChargeDaysPercent: 25 },
-    { ...evs.honda_e, singleChargeDaysPercent: 25 },
-    { ...evs.nissan, singleChargeDaysPercent: 25 },
-    { ...evs.peugeot, singleChargeDaysPercent: 25 },
-    { ...evs.smart, singleChargeDaysPercent: 0 },
-  ]);
+    { ...evs.tesla, singleChargeDaysPercentage: 100 },
+    { ...evs.renault, singleChargeDaysPercentage: 75 },
+    { ...evs.porsche, singleChargeDaysPercentage: 75 },
+    { ...evs.vw_id3, singleChargeDaysPercentage: 50 },
+    { ...evs.vw_egolf, singleChargeDaysPercentage: 25 },
+    { ...evs.honda_e, singleChargeDaysPercentage: 25 },
+    { ...evs.nissan, singleChargeDaysPercentage: 25 },
+    { ...evs.peugeot, singleChargeDaysPercentage: 25 },
+    { ...evs.smart, singleChargeDaysPercentage: 0 },
+  ] as ElectricVehicle[]);
 });
