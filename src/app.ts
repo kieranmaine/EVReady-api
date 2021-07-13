@@ -3,13 +3,15 @@ import * as dotenv from "dotenv";
 import { Journey, validate } from "./models/journey";
 import { json } from "body-parser";
 import {
+  getEVStats,
   getEVs,
   getJourneys,
   getWeeklyJourneySummary,
   insertJourney,
 } from "./repository";
 import { userAuthorization } from "./middleware/authorization";
-import { RequestCustom } from "./types";
+import { RequestCustom, RequestCustomMakeModel } from "./types";
+import { ElectricVehicleStats } from "./models/electricVehicle";
 
 dotenv.config({ path: __dirname + "/../.env" });
 
@@ -63,8 +65,31 @@ secureRouter.get("/journeys/weekly", async (req, res, next) => {
   }
 });
 
-secureRouter.get("/evs", async (_, res) => {
-  res.json(await getEVs());
+secureRouter.get("/evs", async (req, res) => {
+  const userId = (req as RequestCustom).currentUser.id;
+  res.json(await getEVs(userId));
+});
+
+secureRouter.get("/evs/:make/:model", async (req, res) => {
+  const userId = (req as RequestCustomMakeModel).currentUser.id;
+
+  const evs = await getEVs(userId, req.params.make, req.params.model);
+
+  const { totalAwayCharges, meanWeeklyCharges } = await getEVStats(
+    userId,
+    req.params.make,
+    req.params.model
+  );
+
+  if (evs.length == 0) {
+    res.status(404).send();
+  } else {
+    res.json({
+      ...evs[0],
+      totalAwayCharges,
+      meanWeeklyCharges,
+    } as ElectricVehicleStats);
+  }
 });
 
 app.use("/", secureRouter);

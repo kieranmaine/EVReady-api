@@ -1,11 +1,13 @@
 import supertest from "supertest";
-import faker from "faker";
 import app from "../../src/app";
-import { db, insertJourney } from "../../src/repository";
+import { insertJourney } from "../../src/repository";
 import { userId } from "./setup";
 import { databaseCleanup } from "./utils";
 import { createJourney, evs, insertAnotherUser } from "./testData";
-import { ElectricVehicle } from "../../src/models/electricVehicle";
+import {
+  ElectricVehicle,
+  ElectricVehicleStats,
+} from "../../src/models/electricVehicle";
 
 beforeEach(async () => {
   await databaseCleanup();
@@ -22,8 +24,6 @@ test("GET /evs - Unauthorised", async () => {
 });
 
 test("GET /evs - Authorised", async () => {
-  const otherUserId = await insertAnotherUser();
-
   const journeysToCreate = [
     // 75 miles - over two journeys in one day
     createJourney({ distanceMeters: 60338, startDate: new Date(2021, 6, 2) }),
@@ -32,7 +32,7 @@ test("GET /evs - Authorised", async () => {
     createJourney({
       distanceMeters: 60338,
       startDate: new Date(2021, 6, 2),
-      userId: otherUserId,
+      userId: await insertAnotherUser(),
     }),
     // 200 miles
     createJourney({ distanceMeters: 321800, startDate: new Date(2021, 6, 3) }),
@@ -66,4 +66,77 @@ test("GET /evs - Authorised", async () => {
     { ...evs.peugeot, singleChargeDaysPercentage: 25 },
     { ...evs.smart, singleChargeDaysPercentage: 0 },
   ] as ElectricVehicle[]);
+});
+
+test("GET /evs/Nissan/Leaf - Unauthorised", async () => {
+  // UUID is invalid and doesn't exist
+  const res = await supertest(app)
+    .get("/evs/nissan/leaf")
+    .set("X-API-Key", "56ffcc8f-d761-4e5b-be00-10ec0390dde2")
+    .send({});
+
+  expect(res.status).toEqual(401);
+});
+
+test("GET /evs/Nissan/Leaf - Authorised", async () => {
+  const journeysToCreate = [
+    // 75 miles - over two journeys in one day
+    createJourney({
+      finishedAtHome: false,
+      distanceMeters: 60338,
+      startDate: new Date(2021, 6, 6),
+    }),
+    createJourney({
+      finishedAtHome: true,
+      distanceMeters: 60338,
+      startDate: new Date(2021, 6, 7),
+    }),
+    // Create journey for different user, to check journey is filtered out
+    createJourney({
+      distanceMeters: 60338,
+      startDate: new Date(2021, 6, 2),
+      userId: await insertAnotherUser(),
+    }),
+    // 200 miles
+    createJourney({
+      finishedAtHome: false,
+      distanceMeters: 321800,
+      startDate: new Date(2021, 6, 13),
+    }),
+    // 120 miles
+    createJourney({
+      finishedAtHome: true,
+      distanceMeters: 193080,
+      startDate: new Date(2021, 6, 14),
+    }),
+    // 260 miles - over two journeys in one day
+    createJourney({
+      finishedAtHome: false,
+      distanceMeters: 209170,
+      startDate: new Date(2021, 6, 20),
+    }),
+    createJourney({
+      finishedAtHome: true,
+      distanceMeters: 209170,
+      startDate: new Date(2021, 6, 21),
+    }),
+  ];
+
+  for (const journey of journeysToCreate) {
+    await insertJourney(journey);
+  }
+
+  const res = await supertest(app)
+    .get("/evs/Nissan/Leaf")
+    .set("X-API-Key", userId)
+    .send({});
+
+  expect(res.status).toEqual(200);
+
+  expect(res.body).toEqual({
+    ...evs.nissan,
+    singleChargeDaysPercentage: 83,
+    meanWeeklyCharges: 1.64,
+    totalAwayCharges: 3,
+  } as ElectricVehicleStats);
 });

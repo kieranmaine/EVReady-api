@@ -6,3 +6,8 @@ export interface ElectricVehicle {
   efficiency: number;
   singleChargeDaysPercentage?: number;
 }
+
+export interface ElectricVehicleStats extends ElectricVehicle {
+  meanWeeklyCharges: number;
+  totalAwayCharges: number;
+}
