@@ -76,29 +76,98 @@ export async function getWeeklyJourneySummary(
   );
 }
 
-getJourneys;
-
 export async function getUser(id: string): Promise<User> {
   return (await db())("users").where({ id }).first<User>();
 }
 
-export async function getEVs(): Promise<any[]> {
+export async function getEVs(
+  userId: string,
+  make?: string,
+  model?: string
+): Promise<any[]> {
   const client = await db();
   const results = await client.raw(
     `
     SELECT make, model, range, price, efficiency, 
-      ROUND((CAST(COUNT(J."totalDistance") AS FLOAT) / (SELECT COUNT(DISTINCT date_trunc('day', "startDate")) as totalJourneyDays 
-      FROM journeys)) * 100) AS "singleChargeDaysPercentage"
+      ROUND((CAST(COUNT(J."totalDistance") AS FLOAT) / (
+        SELECT COUNT(DISTINCT date_trunc('day', "startDate")) as totalJourneyDays 
+        FROM journeys
+        where "userId" = :userId
+      )) * 100) AS "singleChargeDaysPercentage"
     FROM evs E
     LEFT JOIN (
       select date_trunc('day', "startDate"), SUM("distanceMeters") / 1609 as "totalDistance"
       from journeys
+      where "userId" = :userId
       group by date_trunc('day', "startDate")
     ) J ON E.range > J."totalDistance"
+    ${make && model ? "WHERE E.make = :make AND E.model = :model" : ""}
     GROUP BY make, model, range, price, efficiency
     ORDER BY COUNT(J."totalDistance") DESC, price ASC
-    `
+    `,
+    {
+      userId,
+      make: make || "",
+      model: model || "",
+    }
   );
 
   return results.rows as ElectricVehicle[];
+}
+
+export async function getAwayCharges(
+  userId: string,
+  make: string,
+  model: string
+): Promise<{ totalAwayCharges: number; meanWeeklyCharges: number }> {
+  const client = await db();
+  const results = await client.raw(
+    `
+    SELECT (
+      SELECT SUM("totalTripDistance" / E.range)
+      FROM (
+        SELECT
+        (
+          SELECT SUM("distanceMeters") / 1609
+          FROM journeys AJ
+          WHERE 
+            AJ."startDate" <= JAH."startDate" 
+            AND AJ."startDate" > JAH.prev 
+            AND AJ."userId" = :userId
+        ) AS "totalTripDistance"
+        FROM (
+          SELECT J.*, LAG(J."startDate", 1) OVER (ORDER BY J."startDate") prev
+          FROM journeys J
+          WHERE "finishedAtHome" = true AND J."userId" = :userId
+          ORDER BY J."startDate"
+        ) JAH
+        ORDER BY JAH."startDate"
+      ) "totalJourneyDistances",
+      evs E
+      WHERE "totalTripDistance" IS NOT NULL AND make = :make AND model = :model
+      GROUP BY E.make, E.model
+    ) as "totalAwayCharges",
+    (
+      SELECT ROUND(AVG("weeklyDistanceMiles" / E.range::float)::numeric, 2)
+      FROM evs E, WeeklyDistance WD	
+      WHERE make = :make AND model = :model AND "userId" = :userId
+    ) as "meanWeeklyCharges"
+    `,
+    {
+      userId,
+      make: make || "",
+      model: model || "",
+    }
+  );
+
+  if (results.rows.length == 0) {
+    return { totalAwayCharges: 0, meanWeeklyCharges: 0 };
+  }
+
+  const row = results.rows[0];
+
+  return {
+    totalAwayCharges: parseInt(row.totalAwayCharges),
+    meanWeeklyCharges: parseFloat(row.meanWeeklyCharges),
+  };
 }
