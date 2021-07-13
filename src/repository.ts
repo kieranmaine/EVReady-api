@@ -115,7 +115,7 @@ export async function getEVs(
   return results.rows as ElectricVehicle[];
 }
 
-export async function getAwayCharges(
+export async function getEVStats(
   userId: string,
   make: string,
   model: string

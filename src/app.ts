@@ -3,7 +3,7 @@ import * as dotenv from "dotenv";
 import { Journey, validate } from "./models/journey";
 import { json } from "body-parser";
 import {
-  getAwayCharges,
+  getEVStats,
   getEVs,
   getJourneys,
   getWeeklyJourneySummary,
@@ -75,7 +75,7 @@ secureRouter.get("/evs/:make/:model", async (req, res) => {
 
   const evs = await getEVs(userId, req.params.make, req.params.model);
 
-  const { totalAwayCharges, meanWeeklyCharges } = await getAwayCharges(
+  const { totalAwayCharges, meanWeeklyCharges } = await getEVStats(
     userId,
     req.params.make,
     req.params.model
