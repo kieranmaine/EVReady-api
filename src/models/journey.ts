@@ -15,7 +15,9 @@ export interface WeeklyJourneysSummary {
   totalMiles: number;
 }
 
-export function validate(obj: Record<string, unknown>): ValidationResult {
+export function validateJourney(
+  obj: Record<string, unknown>
+): ValidationResult {
   return Joi.object({
     durationSeconds: Joi.number().integer().required(),
     distanceMeters: Joi.number().integer().required(),

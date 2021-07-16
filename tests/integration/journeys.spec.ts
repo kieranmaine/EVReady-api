@@ -2,8 +2,8 @@ import supertest from "supertest";
 import faker from "faker";
 import app from "../../src/app";
 import { Journey } from "../../src/models/journey";
-import { db, insertJourney } from "../../src/repository";
-import { userId } from "./setup";
+import { insertJourney } from "../../src/repository";
+import { client, userId } from "./setup";
 import { databaseCleanup } from "./utils";
 import { createJourney, insertAnotherUser } from "./testData";
 
@@ -39,9 +39,7 @@ test("POST /journeys - Valid request", async () => {
 
   const id = res.body.id;
 
-  const journey = (await (await db())("journeys")
-    .where("id", id)
-    .first()) as Journey;
+  const journey = (await client("journeys").where("id", id).first()) as Journey;
 
   expect(journey).toEqual(
     expect.objectContaining({ ...expectedJourney, userId })

@@ -80,6 +80,11 @@ export async function getUser(id: string): Promise<User> {
   return (await db())("users").where({ id }).first<User>();
 }
 
+export async function updateUser(user: User): Promise<void> {
+  const client = await db();
+  await client("users").where({ id: user.id }).update(user);
+}
+
 export async function getEVs(
   userId: string,
   make?: string,
