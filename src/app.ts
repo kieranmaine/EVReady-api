@@ -1,6 +1,6 @@
 import express from "express";
 import * as dotenv from "dotenv";
-import { Journey, validate } from "./models/journey";
+import { Journey, validateJourney } from "./models/journey";
 import { json } from "body-parser";
 import {
   getEVStats,
@@ -12,6 +12,7 @@ import {
 import { userAuthorization } from "./middleware/authorization";
 import { RequestCustom, RequestCustomMakeModel } from "./types";
 import { ElectricVehicleStats } from "./models/electricVehicle";
+import { usersRouter } from "./users/usersRouters";
 
 dotenv.config({ path: __dirname + "/../.env" });
 
@@ -27,7 +28,7 @@ const secureRouter = express.Router();
 secureRouter.use(userAuthorization);
 
 secureRouter.post("/journeys", async (req, res, next) => {
-  const { error } = validate(req.body);
+  const { error } = validateJourney(req.body);
 
   if (error) {
     return res.status(400).json(error);
@@ -93,5 +94,7 @@ secureRouter.get("/evs/:make/:model", async (req, res) => {
 });
 
 app.use("/", secureRouter);
+
+app.use("/users", usersRouter);
 
 export default app;
