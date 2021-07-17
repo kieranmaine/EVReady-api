@@ -6,6 +6,12 @@ import { TariffType, User } from "../../src/models/user";
 import { getUser } from "../../src/repository";
 import { client } from "./setup";
 
+const rateOptions = {
+  min: 1,
+  max: 20,
+  precision: 0.01,
+};
+
 beforeEach(async () => {
   await databaseCleanup();
 });
@@ -83,21 +89,20 @@ test("GET /users - Invalid request", async () => {
   );
 });
 
-test("GET /users - Valid request", async () => {
-  const user = {
+test.each([
+  {
     id: faker.datatype.uuid(),
-    tariffType: faker.random.arrayElement([
-      TariffType.Economy7,
-      TariffType.SingleRate,
-    ]),
-    tariffRateOffPeak: faker.datatype.number({
-      min: 1,
-      max: 20,
-      precision: 0.01,
-    }),
-    tariffRatePeak: faker.datatype.number({ min: 1, max: 20, precision: 0.01 }),
-  } as User;
-
+    tariffType: TariffType.Economy7,
+    tariffRateOffPeak: faker.datatype.number(rateOptions),
+    tariffRatePeak: faker.datatype.number(rateOptions),
+  },
+  {
+    id: faker.datatype.uuid(),
+    tariffType: TariffType.SingleRate,
+    tariffRateOffPeak: null,
+    tariffRatePeak: faker.datatype.number(rateOptions),
+  },
+] as User[])("GET /users - Valid $tariffType request", async (user) => {
   // Insert user with no data
   await client("users").insert({ id: user.id });
 
