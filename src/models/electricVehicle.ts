@@ -10,4 +10,6 @@ export interface ElectricVehicle {
 export interface ElectricVehicleStats extends ElectricVehicle {
   meanWeeklyCharges: number;
   totalAwayCharges: number;
+  chargingCostsMin: number;
+  chargingCostsMax: number;
 }

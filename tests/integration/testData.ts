@@ -3,6 +3,7 @@ import { Journey } from "../../src/models/journey";
 import { userId } from "./setup";
 import { ElectricVehicle } from "../../src/models/electricVehicle";
 import { db } from "../../src/repository";
+import { User } from "../../src/models/user";
 
 export const createJourney = (overrideFields = {}): Journey => ({
   durationSeconds: faker.datatype.number(3600),
@@ -78,8 +79,8 @@ export const evs: Record<string, ElectricVehicle> = {
   },
 };
 
-export const insertAnotherUser = async (): Promise<string> => {
+export const createUser = async (user?: Partial<User>): Promise<string> => {
   const otherUserId = faker.datatype.uuid();
-  await (await db())("users").insert({ id: otherUserId });
+  await (await db())("users").insert({ id: otherUserId, ...user });
   return otherUserId;
 };
