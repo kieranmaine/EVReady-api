@@ -5,7 +5,7 @@ import { Journey } from "../../src/models/journey";
 import { insertJourney } from "../../src/repository";
 import { client, userId } from "./setup";
 import { databaseCleanup } from "./utils";
-import { createJourney, insertAnotherUser } from "./testData";
+import { createJourney, createUser } from "./testData";
 
 beforeEach(async () => {
   await databaseCleanup();
@@ -106,7 +106,7 @@ test("GET /journeys - Valid request", async () => {
   const journey1 = createJourney();
   await insertJourney(journey1);
 
-  const otherUserId = await insertAnotherUser();
+  const otherUserId = await createUser();
   await insertJourney(createJourney({ userId: otherUserId }));
 
   const journey2 = createJourney();

@@ -124,39 +124,64 @@ export async function getEVStats(
   userId: string,
   make: string,
   model: string
-): Promise<{ totalAwayCharges: number; meanWeeklyCharges: number }> {
+): Promise<{
+  totalAwayCharges: number;
+  meanWeeklyCharges: number;
+  chargingCostsMin: number;
+  chargingCostsMax: number;
+}> {
   const client = await db();
   const results = await client.raw(
     `
-    SELECT (
-      SELECT SUM("totalTripDistance" / E.range)
-      FROM (
-        SELECT
-        (
-          SELECT SUM("distanceMeters") / 1609
-          FROM journeys AJ
-          WHERE 
-            AJ."startDate" <= JAH."startDate" 
-            AND AJ."startDate" > JAH.prev 
-            AND AJ."userId" = :userId
-        ) AS "totalTripDistance"
+    WITH total_distance AS (
+      SELECT SUM("distanceMeters") / 1609 AS distance_miles
+      FROM journeys
+      WHERE "userId" = :userId
+    ), tariff_rates AS (
+      SELECT 
+        CASE "tariffType"
+          WHEN 'singleRate' THEN "tariffRatePeak"
+          WHEN 'economy7' THEN "tariffRateOffPeak"
+        END AS min_rate,
+        "tariffRatePeak" AS max_rate
+      FROM users
+      WHERE id = :userId
+    )    
+    SELECT
+      ROUND(AVG("weeklyDistanceMiles" / E.range::float)::numeric, 2) AS "meanWeeklyCharges",
+      ROUND(
+        ((((distance_miles * efficiency) / 1000.0) * min_rate) / 100.0)::numeric
+      ,2) AS "chargingCostsMin",
+      ROUND(
+        ((((distance_miles * efficiency) / 1000.0) * max_rate) / 100.0)::numeric
+      , 2) AS "chargingCostsMax",
+	    (
+        SELECT SUM(total_trip_distance / E.range)
         FROM (
-          SELECT J.*, LAG(J."startDate", 1) OVER (ORDER BY J."startDate") prev
-          FROM journeys J
-          WHERE "finishedAtHome" = true AND J."userId" = :userId
-          ORDER BY J."startDate"
-        ) JAH
-        ORDER BY JAH."startDate"
-      ) "totalJourneyDistances",
-      evs E
-      WHERE "totalTripDistance" IS NOT NULL AND make = :make AND model = :model
-      GROUP BY E.make, E.model
-    ) as "totalAwayCharges",
-    (
-      SELECT ROUND(AVG("weeklyDistanceMiles" / E.range::float)::numeric, 2)
-      FROM evs E, WeeklyDistance WD	
-      WHERE make = :make AND model = :model AND "userId" = :userId
-    ) as "meanWeeklyCharges"
+          SELECT
+          (
+            SELECT SUM("distanceMeters") / 1609
+            FROM journeys AJ
+            WHERE 
+              AJ."startDate" <= JAH."startDate" 
+              AND AJ."startDate" > JAH.prev 
+              AND AJ."userId" = :userId
+          ) AS total_trip_distance
+          FROM (
+            SELECT J.*, LAG(J."startDate", 1) OVER (ORDER BY J."startDate") prev
+            FROM journeys J
+            WHERE "finishedAtHome" = true AND J."userId" = :userId
+            ORDER BY J."startDate"
+          ) JAH
+          ORDER BY JAH."startDate"
+        ) "totalJourneyDistances",
+        evs E
+        WHERE total_trip_distance IS NOT NULL AND make = :make AND model = :model
+        GROUP BY E.make, E.model
+      ) as "totalAwayCharges"
+    FROM evs E, total_distance, tariff_rates, WeeklyDistance WD
+    WHERE E.make = :make AND E.model = :model AND WD."userId" = :userId
+	  GROUP BY distance_miles, efficiency, min_rate, max_rate;
     `,
     {
       userId,
@@ -166,7 +191,12 @@ export async function getEVStats(
   );
 
   if (results.rows.length == 0) {
-    return { totalAwayCharges: 0, meanWeeklyCharges: 0 };
+    return {
+      totalAwayCharges: 0,
+      meanWeeklyCharges: 0,
+      chargingCostsMin: 0,
+      chargingCostsMax: 0,
+    };
   }
 
   const row = results.rows[0];
@@ -174,5 +204,7 @@ export async function getEVStats(
   return {
     totalAwayCharges: parseInt(row.totalAwayCharges),
     meanWeeklyCharges: parseFloat(row.meanWeeklyCharges),
+    chargingCostsMin: parseFloat(row.chargingCostsMin),
+    chargingCostsMax: parseFloat(row.chargingCostsMax),
   };
 }

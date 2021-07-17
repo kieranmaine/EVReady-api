@@ -3,11 +3,12 @@ import app from "../../src/app";
 import { insertJourney } from "../../src/repository";
 import { userId } from "./setup";
 import { databaseCleanup } from "./utils";
-import { createJourney, evs, insertAnotherUser } from "./testData";
+import { createJourney, evs, createUser } from "./testData";
 import {
   ElectricVehicle,
   ElectricVehicleStats,
 } from "../../src/models/electricVehicle";
+import { TariffType, User } from "../../src/models/user";
 
 beforeEach(async () => {
   await databaseCleanup();
@@ -32,7 +33,7 @@ test("GET /evs - Authorised", async () => {
     createJourney({
       distanceMeters: 60338,
       startDate: new Date(2021, 6, 2),
-      userId: await insertAnotherUser(),
+      userId: await createUser(),
     }),
     // 200 miles
     createJourney({ distanceMeters: 321800, startDate: new Date(2021, 6, 3) }),
@@ -78,65 +79,99 @@ test("GET /evs/Nissan/Leaf - Unauthorised", async () => {
   expect(res.status).toEqual(401);
 });
 
-test("GET /evs/Nissan/Leaf - Authorised", async () => {
-  const journeysToCreate = [
-    // 75 miles - over two journeys in one day
-    createJourney({
-      finishedAtHome: false,
-      distanceMeters: 60338,
-      startDate: new Date(2021, 6, 6),
-    }),
-    createJourney({
-      finishedAtHome: true,
-      distanceMeters: 60338,
-      startDate: new Date(2021, 6, 7),
-    }),
-    // Create journey for different user, to check journey is filtered out
-    createJourney({
-      distanceMeters: 60338,
-      startDate: new Date(2021, 6, 2),
-      userId: await insertAnotherUser(),
-    }),
-    // 200 miles
-    createJourney({
-      finishedAtHome: false,
-      distanceMeters: 321800,
-      startDate: new Date(2021, 6, 13),
-    }),
-    // 120 miles
-    createJourney({
-      finishedAtHome: true,
-      distanceMeters: 193080,
-      startDate: new Date(2021, 6, 14),
-    }),
-    // 260 miles - over two journeys in one day
-    createJourney({
-      finishedAtHome: false,
-      distanceMeters: 209170,
-      startDate: new Date(2021, 6, 20),
-    }),
-    createJourney({
-      finishedAtHome: true,
-      distanceMeters: 209170,
-      startDate: new Date(2021, 6, 21),
-    }),
-  ];
+[
+  {
+    userData: {
+      tariffType: TariffType.Economy7,
+      tariffRateOffPeak: 12.3,
+      tariffRatePeak: 24.6,
+    } as User,
+    expected: {
+      chargingCostsMin: 20.54,
+      chargingCostsMax: 41.09,
+    },
+  },
+  {
+    userData: {
+      tariffType: TariffType.SingleRate,
+      tariffRateOffPeak: 12.3,
+      tariffRatePeak: 36.9,
+    } as User,
+    expected: {
+      chargingCostsMin: 61.63,
+      chargingCostsMax: 61.63,
+    },
+  },
+].forEach(({ userData, expected }) => {
+  test(`GET /evs/Nissan/Leaf - Authorised with ${userData.tariffType} user`, async () => {
+    const userId = await createUser(userData);
 
-  for (const journey of journeysToCreate) {
-    await insertJourney(journey);
-  }
+    const journeysToCreate = [
+      // 75 miles - over two journeys in one day
+      createJourney({
+        userId,
+        finishedAtHome: false,
+        distanceMeters: 60338,
+        startDate: new Date(2021, 6, 6),
+      }),
+      createJourney({
+        userId,
+        finishedAtHome: true,
+        distanceMeters: 60338,
+        startDate: new Date(2021, 6, 7),
+      }),
+      // Create journey for different user, to check journey is filtered out
+      createJourney({
+        distanceMeters: 60338,
+        startDate: new Date(2021, 6, 2),
+        userId: await createUser(),
+      }),
+      // 200 miles
+      createJourney({
+        userId,
+        finishedAtHome: false,
+        distanceMeters: 321800,
+        startDate: new Date(2021, 6, 13),
+      }),
+      // 120 miles
+      createJourney({
+        userId,
+        finishedAtHome: true,
+        distanceMeters: 193080,
+        startDate: new Date(2021, 6, 14),
+      }),
+      // 260 miles - over two journeys in one day
+      createJourney({
+        userId,
+        finishedAtHome: false,
+        distanceMeters: 209170,
+        startDate: new Date(2021, 6, 20),
+      }),
+      createJourney({
+        userId,
+        finishedAtHome: true,
+        distanceMeters: 209170,
+        startDate: new Date(2021, 6, 21),
+      }),
+    ];
 
-  const res = await supertest(app)
-    .get("/evs/Nissan/Leaf")
-    .set("X-API-Key", userId)
-    .send({});
+    for (const journey of journeysToCreate) {
+      await insertJourney(journey);
+    }
 
-  expect(res.status).toEqual(200);
+    const res = await supertest(app)
+      .get("/evs/Nissan/Leaf")
+      .set("X-API-Key", userId)
+      .send({});
 
-  expect(res.body).toEqual({
-    ...evs.nissan,
-    singleChargeDaysPercentage: 83,
-    meanWeeklyCharges: 1.64,
-    totalAwayCharges: 3,
-  } as ElectricVehicleStats);
+    expect(res.status).toEqual(200);
+
+    expect(res.body).toEqual({
+      ...evs.nissan,
+      singleChargeDaysPercentage: 83,
+      meanWeeklyCharges: 1.64,
+      totalAwayCharges: 3,
+      ...expected,
+    } as ElectricVehicleStats);
+  });
 });
