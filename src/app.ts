@@ -13,6 +13,7 @@ import { userAuthorization } from "./middleware/authorization";
 import { RequestCustom, RequestCustomMakeModel } from "./types";
 import { ElectricVehicleStats } from "./models/electricVehicle";
 import { usersRouter } from "./users/usersRouters";
+import { fuelPurchasesRouter } from "./fuelPurchases/fuelPurchasesRouter";
 
 dotenv.config({ path: __dirname + "/../.env" });
 
@@ -99,5 +100,6 @@ secureRouter.get("/evs/:make/:model", async (req, res) => {
 app.use("/", secureRouter);
 
 app.use("/users", usersRouter);
+app.use("/fuel", fuelPurchasesRouter);
 
 export default app;

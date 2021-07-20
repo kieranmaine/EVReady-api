@@ -4,6 +4,7 @@ import { getSecret, SecretKeys } from "./secrets";
 import { Journey, WeeklyJourneysSummary } from "./models/journey";
 import { User } from "./models/user";
 import { ElectricVehicle } from "./models/electricVehicle";
+import { FuelPurchase } from "./models/fuelPurchase";
 
 const createUnixSocketPool = async () => {
   const dbHost = process.env.DB_HOST;
@@ -207,4 +208,18 @@ export async function getEVStats(
     chargingCostsMin: parseFloat(row.chargingCostsMin),
     chargingCostsMax: parseFloat(row.chargingCostsMax),
   };
+}
+
+export async function insertFuelPurchase(
+  fuelPurchase: FuelPurchase
+): Promise<FuelPurchase> {
+  const fuelPurchaseToInsert = { ...fuelPurchase };
+
+  if (!fuelPurchaseToInsert.purchaseDate) {
+    fuelPurchaseToInsert.purchaseDate = new Date();
+  }
+
+  await (await db())("fuelPurchases").insert(fuelPurchaseToInsert);
+
+  return fuelPurchaseToInsert;
 }
