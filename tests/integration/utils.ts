@@ -10,6 +10,8 @@ export const databaseCleanup = async (): Promise<void> => {
     ALTER SEQUENCE journeys_id_seq RESTART;
     UPDATE journeys SET id = DEFAULT;
 
+    DELETE FROM "fuelPurchases";
+
     DELETE FROM users WHERE id != '${userId}'; 
   `);
 };
