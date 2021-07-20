@@ -1,7 +1,7 @@
 import express from "express";
 import { userAuthorization } from "../middleware/authorization";
 import { FuelPurchase, validateFuelPurchase } from "../models/fuelPurchase";
-import { insertFuelPurchase } from "../repository";
+import { getFuelPurchases, insertFuelPurchase } from "../repository";
 import { RequestCustom } from "../types";
 
 export const fuelPurchasesRouter = express.Router();
@@ -24,4 +24,10 @@ fuelPurchasesRouter.post("/", async (req, res) => {
   const createdFuelPurchase = await insertFuelPurchase(fuelPurchase);
 
   res.status(201).send(createdFuelPurchase);
+});
+
+fuelPurchasesRouter.get("/", async (req, res) => {
+  const results = await getFuelPurchases((req as RequestCustom).currentUser.id);
+
+  res.status(200).send(results);
 });

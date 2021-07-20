@@ -223,3 +223,11 @@ export async function insertFuelPurchase(
 
   return fuelPurchaseToInsert;
 }
+
+export async function getFuelPurchases(
+  userId: string
+): Promise<FuelPurchase[]> {
+  return await (await db())<FuelPurchase>("fuelPurchases")
+    .where({ userId })
+    .orderBy("purchaseDate", "desc");
+}
