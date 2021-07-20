@@ -119,7 +119,7 @@ test.only("GET /fuel - Authorised", async () => {
   // purchaseDate is returned as string by API convert
   // to date to check correct data is returned
   const results = res.body.map((x: FuelPurchase) => {
-    x.purchaseDate = new Date(x.purchaseDate);
+    x.purchaseDate = new Date(x.purchaseDate!.toString());
     return x;
   });
 
