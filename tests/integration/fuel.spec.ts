@@ -82,13 +82,12 @@ test("GET /fuel - Unauthorised", async () => {
   // UUID is invalid and doesn't exist
   const res = await supertest(app)
     .get("/fuel")
-    .set("X-API-Key", "56ffcc8f-d761-4e5b-be00-10ec0390dde2")
-    .send({});
+    .set("X-API-Key", "56ffcc8f-d761-4e5b-be00-10ec0390dde2");
 
   expect(res.status).toEqual(401);
 });
 
-test.only("GET /fuel - Authorised", async () => {
+test("GET /fuel - Authorised", async () => {
   const purchase1 = {
     purchaseDate: new Date(2021, 5, 1),
     cost: 12.3,
@@ -109,21 +108,59 @@ test.only("GET /fuel - Authorised", async () => {
   };
   insertFuelPurchase(purchase2);
 
-  const res = await supertest(app)
-    .get("/fuel")
-    .set("X-API-Key", userId)
-    .send({});
+  const res = await supertest(app).get("/fuel").set("X-API-Key", userId);
 
   expect(res.status).toEqual(200);
 
   // purchaseDate is returned as string by API convert
   // to date to check correct data is returned
   const results = res.body.map((x: FuelPurchase) => {
-    x.purchaseDate = new Date(x.purchaseDate!.toString());
+    x.purchaseDate = new Date(x.purchaseDate?.toString());
     return x;
   });
 
   expect(results).toHaveLength(2);
   expect(results[0]).toEqual(purchase2);
   expect(results[1]).toEqual(purchase1);
+});
+
+describe("GET /fuel/total", () => {
+  test("Unauthorised", async () => {
+    // UUID is invalid and doesn't exist
+    const res = await supertest(app)
+      .get("/fuel/total")
+      .set("X-API-Key", "56ffcc8f-d761-4e5b-be00-10ec0390dde2");
+
+    expect(res.status).toEqual(401);
+  });
+
+  test("Authorised", async () => {
+    const purchaseCost1 = faker.datatype.number({ precision: 0.01 });
+    const purchaseCost2 = faker.datatype.number({ precision: 0.01 });
+
+    insertFuelPurchase({
+      purchaseDate: new Date(2021, 5, 1),
+      cost: purchaseCost1,
+      userId,
+    });
+
+    insertFuelPurchase({
+      purchaseDate: new Date(2021, 7, 1),
+      cost: 45.6,
+      userId: await createUser(),
+    });
+
+    insertFuelPurchase({
+      purchaseDate: new Date(2021, 7, 1),
+      cost: purchaseCost2,
+      userId,
+    });
+
+    const res = await supertest(app)
+      .get("/fuel/total")
+      .set("X-API-Key", userId);
+
+    expect(res.status).toEqual(200);
+    expect(res.body).toEqual({ totalCost: purchaseCost1 + purchaseCost2 });
+  });
 });
