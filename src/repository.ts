@@ -231,3 +231,14 @@ export async function getFuelPurchases(
     .where({ userId })
     .orderBy("purchaseDate", "desc");
 }
+
+export async function getFuelPurchasesTotal(
+  userId: string
+): Promise<{ totalCost: number }> {
+  const result = await (await db())("fuelPurchases")
+    .where({ userId })
+    .sum({ totalCost: "cost" })
+    .first<{ totalCost: number }>();
+
+  return result;
+}
