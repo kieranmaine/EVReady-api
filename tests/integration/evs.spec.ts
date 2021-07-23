@@ -1,6 +1,6 @@
 import supertest from "supertest";
 import app from "../../src/app";
-import { insertJourney } from "../../src/repository";
+import { insertFuelPurchase, insertJourney } from "../../src/repository";
 import { userId } from "./setup";
 import { databaseCleanup } from "./utils";
 import { createJourney, evs, createUser } from "./testData";
@@ -89,6 +89,8 @@ test("GET /evs/Nissan/Leaf - Unauthorised", async () => {
     expected: {
       chargingCostsMin: 20.54,
       chargingCostsMax: 41.09,
+      savingsMin: 79.46,
+      savingsMax: 58.91,
     },
   },
   {
@@ -100,11 +102,30 @@ test("GET /evs/Nissan/Leaf - Unauthorised", async () => {
     expected: {
       chargingCostsMin: 61.63,
       chargingCostsMax: 61.63,
+      savingsMin: 38.37,
+      savingsMax: 38.37,
     },
   },
 ].forEach(({ userData, expected }) => {
   test(`GET /evs/Nissan/Leaf - Authorised with ${userData.tariffType} user`, async () => {
     const userId = await createUser(userData);
+    const anotherUserId = await await createUser();
+
+    insertFuelPurchase({
+      purchaseDate: new Date(2021, 6, 1),
+      cost: 50,
+      userId,
+    });
+    insertFuelPurchase({
+      purchaseDate: new Date(2021, 6, 2),
+      cost: 5,
+      userId: anotherUserId,
+    });
+    insertFuelPurchase({
+      purchaseDate: new Date(2021, 6, 3),
+      cost: 50,
+      userId,
+    });
 
     const journeysToCreate = [
       // 75 miles - over two journeys in one day
@@ -124,7 +145,7 @@ test("GET /evs/Nissan/Leaf - Unauthorised", async () => {
       createJourney({
         distanceMeters: 60338,
         startDate: new Date(2021, 6, 2),
-        userId: await createUser(),
+        userId: anotherUserId,
       }),
       // 200 miles
       createJourney({
