@@ -130,6 +130,8 @@ export async function getEVStats(
   meanWeeklyCharges: number;
   chargingCostsMin: number;
   chargingCostsMax: number;
+  savingsMin: number;
+  savingsMax: number;
 }> {
   const client = await db();
   const results = await client.raw(
@@ -147,7 +149,11 @@ export async function getEVStats(
         "tariffRatePeak" AS max_rate
       FROM users
       WHERE id = :userId
-    )    
+    ), total_fuel_cost AS (
+      SELECT SUM(cost) AS total_cost
+      FROM "fuelPurchases"
+      WHERE "userId" = :userId
+    )
     SELECT
       ROUND(AVG("weeklyDistanceMiles" / E.range::float)::numeric, 2) AS "meanWeeklyCharges",
       ROUND(
@@ -156,6 +162,12 @@ export async function getEVStats(
       ROUND(
         ((((distance_miles * efficiency) / 1000.0) * max_rate) / 100.0)::numeric
       , 2) AS "chargingCostsMax",
+      total_cost - ROUND(
+        ((((distance_miles * efficiency) / 1000.0) * min_rate) / 100.0)::numeric
+      ,2) AS "savingsMin",
+      total_cost - ROUND(
+        ((((distance_miles * efficiency) / 1000.0) * max_rate) / 100.0)::numeric
+      , 2) AS "savingsMax",
 	    (
         SELECT SUM(total_trip_distance / E.range)
         FROM (
@@ -180,9 +192,9 @@ export async function getEVStats(
         WHERE total_trip_distance IS NOT NULL AND make = :make AND model = :model
         GROUP BY E.make, E.model
       ) as "totalAwayCharges"
-    FROM evs E, total_distance, tariff_rates, WeeklyDistance WD
+    FROM evs E, total_distance, tariff_rates, WeeklyDistance WD, total_fuel_cost
     WHERE E.make = :make AND E.model = :model AND WD."userId" = :userId
-	  GROUP BY distance_miles, efficiency, min_rate, max_rate;
+	  GROUP BY distance_miles, efficiency, min_rate, max_rate, total_cost;
     `,
     {
       userId,
@@ -197,6 +209,8 @@ export async function getEVStats(
       meanWeeklyCharges: 0,
       chargingCostsMin: 0,
       chargingCostsMax: 0,
+      savingsMin: 0,
+      savingsMax: 0,
     };
   }
 
@@ -207,6 +221,8 @@ export async function getEVStats(
     meanWeeklyCharges: parseFloat(row.meanWeeklyCharges),
     chargingCostsMin: parseFloat(row.chargingCostsMin),
     chargingCostsMax: parseFloat(row.chargingCostsMax),
+    savingsMin: parseFloat(row.savingsMin),
+    savingsMax: parseFloat(row.savingsMax),
   };
 }
 

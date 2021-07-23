@@ -77,22 +77,14 @@ secureRouter.get("/evs/:make/:model", async (req, res) => {
 
   const evs = await getEVs(userId, req.params.make, req.params.model);
 
-  const {
-    totalAwayCharges,
-    meanWeeklyCharges,
-    chargingCostsMin,
-    chargingCostsMax,
-  } = await getEVStats(userId, req.params.make, req.params.model);
+  const stats = await getEVStats(userId, req.params.make, req.params.model);
 
   if (evs.length == 0) {
     res.status(404).send();
   } else {
     res.json({
       ...evs[0],
-      totalAwayCharges,
-      meanWeeklyCharges,
-      chargingCostsMin,
-      chargingCostsMax,
+      ...stats,
     } as ElectricVehicleStats);
   }
 });
