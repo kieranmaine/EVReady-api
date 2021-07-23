@@ -89,8 +89,8 @@ test("GET /evs/Nissan/Leaf - Unauthorised", async () => {
     expected: {
       chargingCostsMin: 20.54,
       chargingCostsMax: 41.09,
-      savingsMin: 79.46,
-      savingsMax: 58.91,
+      savingsMin: 58.91,
+      savingsMax: 79.46,
     },
   },
   {

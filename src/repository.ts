@@ -164,10 +164,10 @@ export async function getEVStats(
       , 2) AS "chargingCostsMax",
       total_cost - ROUND(
         ((((distance_miles * efficiency) / 1000.0) * min_rate) / 100.0)::numeric
-      ,2) AS "savingsMin",
+      ,2) AS "savingsMax",
       total_cost - ROUND(
         ((((distance_miles * efficiency) / 1000.0) * max_rate) / 100.0)::numeric
-      , 2) AS "savingsMax",
+      , 2) AS "savingsMin",
 	    (
         SELECT SUM(total_trip_distance / E.range)
         FROM (
