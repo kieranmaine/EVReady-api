@@ -1,5 +1,4 @@
 import express from "express";
-import { userAuthorization } from "../middleware/authorization";
 import { FuelPurchase, validateFuelPurchase } from "../models/fuelPurchase";
 import {
   getFuelPurchases,
@@ -9,8 +8,6 @@ import {
 import { RequestCustom } from "../types";
 
 export const fuelPurchasesRouter = express.Router();
-
-fuelPurchasesRouter.use(userAuthorization);
 
 fuelPurchasesRouter.post("/", async (req, res) => {
   const { error } = validateFuelPurchase(req.body);
